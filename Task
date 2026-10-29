@@ -1,0 +1,223 @@
+# ROBT613 Midterm Project Team
+
+---
+
+**Project introduction**
+
+A brain–computer interface (BCI) turns measured brain activity into commands or decisions without using muscles. A working BCI depends on a chain of choices: how the signal is recorded, how it is cleaned and segmented, which features are extracted, and how a decoder is trained and evaluated. A weakness at any step can make a system look better or worse than it really is.
+
+In this midterm project, your team will make each of those choices yourselves on real data. You will choose a public EEG dataset and a research question, build a complete offline BCI pipeline in MNE-Python, and test whether your hypothesis holds. You will use only the methods from notebooks 00–06 of the BCI Workshop. The project rewards careful reasoning and honest evaluation over high accuracy: a well-tested negative result is worth more than an impressive number you can't defend.
+
+**Project objective**
+
+The objective is for each team to design, carry out and defend a small, reproducible BCI study. By the end of the project, your team should be able to:
+
+1. Pose a clear, testable hypothesis about a BCI problem and justify why it matters.
+2. Load a public EEG dataset into MNE-Python and document its recording setup, events and data quality.
+3. Preprocess the signals (filtering, artifact handling, epoching, quality control) and justify each step with evidence.
+4. Show that the expected brain response is present (for example, a P300 or motor-related changes in mu/beta power) before you decode it.
+5. Build a decoder and evaluate it without data leakage, comparing the results against chance level.
+6. Test your hypothesis with a controlled comparison, interpret the results honestly, and present them as a team.
+
+---
+
+In teams of four, you will pose a challenging BCI question, answer it on a public EEG dataset, and defend the answer with honest validation. Use only the methods taught in notebooks 00–06.
+
+> To prepare for this project, use the ROBT613 BCI Workshop (https://berdakh.github.io/ROBT613-BCI-Workshop/)
+(https://github.com/berdakh/ROBT613-BCI-Workshop),
+ a set of self-contained Jupyter notebooks I prepared for this course. In class we covered only the basics of MNE-Python, and the workshop builds from there to a working BCI pipeline. Notebooks 00–06 cover MNE-Python's data model, the P300 speller (ERPs and classification), filtering and spectral analysis, artifact removal and referencing, epoching and quality control, and a first motor-imagery decoder. Each notebook opens directly in Google Colab with no local setup. It includes the theory, equations, real-data examples, practice exercises and worked solutions, so you can learn from it on your own. Work through the notebooks individually before the project starts, and use them as your reference guide during the project: all methods in your project should come from them, and you may reuse their code with a citation.
+>
+
+**Before you start, every team member works through these notebooks individually:**
+
+| # | Notebook | What you will reuse in the project |
+| --- | --- | --- |
+| 00 | Your first EEG in MNE | Raw objects, units, montage, events, first pipeline |
+| 00a | MNE-Python: capabilities, software design and data model | Raw/Epochs/Evoked design, metadata, in-place operations, saving derivatives |
+| 01 | P300 speller: from flashes to ERPs | Event coding, epoching, evoked responses, target vs non-target contrasts |
+| 02 | P300 classification and character selection | Temporal ERP features, shrinkage LDA, ROC AUC, aggregation across repetitions |
+| 03 | Filtering, sampling and spectral inspection | FIR/IIR filters, resampling, aliasing, PSD inspection |
+| 04 | Artifacts, referencing and noise cancellation | Re-referencing, EOG regression, ICA, artifact inspection |
+| 05 | Segmentation, baseline and quality control | Epoch windows, baseline correction, rejection thresholds, QC reporting |
+| 06 | Motor imagery: a first decoder | Welch band power, log features, logistic regression, grouped cross-validation |
+
+The project is a scientific investigation, not a leaderboard race. A well-designed negative result earns full marks; a high accuracy with leakage does not.
+
+**Team size:** 4 students. **Duration:** 3 weeks, after the notebooks are completed. Weight and exact dates are set by the instructor (see Milestones).
+
+## Learning objectives
+
+By the end of the project, your team should be able to:
+
+1. Document a dataset’s provenance, including amplitude units, sampling rate, montage, reference, event codes and experimental protocol (00, 00a, 01).
+2. Justify every preprocessing choice with a figure or a measurement rather than a default (03, 04, 05).
+3. Turn epochs into features that match the physiology: ERP amplitudes for evoked paradigms and log band power for rhythm paradigms (02, 06).
+4. Train a linear classifier and report chance-corrected performance with grouped, leakage-free cross-validation (02, 06).
+5. Test a hypothesis with a controlled comparison where only one factor changes at a time.
+6. Explain what the result does and does not show, including its limits as an offline analysis.
+
+## Scope: what you may and may not use
+
+The core pipeline must use only methods from notebooks 00–06. Depth beats breadth: push these tools hard rather than reaching for later ones.
+
+| Stage | In scope (core pipeline) | Out of scope for the core result |
+| --- | --- | --- |
+| Paradigm | P300 / ERP oddball, motor imagery or motor execution EEG | SSVEP, fNIRS, invasive recordings |
+| Data handling | MNE Raw/Epochs/Evoked, MOABB or `mne.datasets` loaders, annotations, metadata | Hand-written file parsers that skip MNE objects |
+| Preprocessing | FIR/IIR band-pass and notch filters, resampling, re-referencing, EOG regression, ICA, bad-channel marking, baseline correction, amplitude rejection | Source localization, ASR, custom adaptive filters |
+| Features | ERP amplitudes in time windows, decimated waveforms, Welch PSD, log band power, channel/band selection | CSP, Riemannian geometry, time-frequency wavelets, Xdawn, CCA |
+| Classifiers | LDA (including shrinkage), logistic regression (with regularization) | Neural networks, SVM ensembles, gradient boosting |
+| Evaluation | Grouped CV (`GroupKFold`), ROC AUC, balanced accuracy, permutation-based chance level, confusion matrices | Accuracy on a random epoch split; tuning on the test set |
+
+An **optional extension** may compare one later method (for example, CSP from notebook 08) against your in-scope baseline. It is worth at most 5% bonus, and only if the in-scope analysis is already complete.
+
+## Choosing a dataset
+
+Pick one public EEG dataset from the approved list below, or choose another one that meets the rules below. All of these load directly into MNE through `mne.datasets` or MOABB, so you can reuse the notebook code.
+
+| Dataset | Paradigm | Subjects | EEG channels | Loader | Why it is interesting |
+| --- | --- | --- | --- | --- | --- |
+| PhysioNet EEG Motor Movement/Imagery (EEGBCI) | Motor execution and imagery, fists/feet | 109 | 64 | `mne.datasets.eegbci` | Used in notebook 06; large subject pool; both executed and imagined runs |
+| BNCI2014-001 (BCI Competition IV 2a) | 4-class motor imagery | 9 | 22 (+3 EOG) | MOABB | Two sessions on different days; EOG channels for artifact work |
+| BNCI2014-004 (BCI Competition IV 2b) | 2-class motor imagery | 9 | 3 bipolar (+3 EOG) | MOABB | Very few channels; five sessions per subject |
+| Cho2017 | Left/right hand imagery | 52 | 64 | MOABB | Many subjects for studying who can and cannot use MI |
+| Lee2019_MI (OpenBMI) | Left/right hand imagery | 54 | 62 | MOABB | Two sessions; large and recent; big download |
+| BNCI2014-009 | P300 speller | 10 | 16 | MOABB | Used in notebooks 01–02; three sessions per subject |
+| BNCI2014-008 | P300 speller, ALS patients | 8 | 8 | MOABB | Clinical population; compare against healthy users |
+| BNCI2015-003 | P300 speller | 10 | 8 | MOABB | Low channel count |
+| EPFLP300 | 6-choice P300, disabled and able-bodied users | 8 | 32 | MOABB | Mixed population; high sampling rate |
+| BrainInvaders2013a | P300 game | 24 | 16 | MOABB | Game-based paradigm; several sessions |
+
+Counts are approximate; confirm them in the MOABB dataset summary before you register your topic.
+
+**Proposing another dataset.** It must be publicly downloadable without a request process, scalp EEG, at least 5 subjects or at least 2 sessions, and loadable into MNE objects. Name the paper that describes the acquisition in your topic registration. No approval is needed.
+
+**Compute budget.** The pipeline must run on a free Colab CPU runtime in under 30 minutes. Use a documented subset of subjects if needed and justify the choice.
+
+## Choosing a challenging problem
+
+A good project asks one testable question, phrased as a hypothesis, that the notebooks equip you to answer. “Classify motor imagery” is a task, not a question. “Does decoding transfer from executed to imagined movement?” is a question.
+
+The ideas below are starting points; you may adapt them or invent your own. Ambition counts: the rubric awards 10% for project difficulty, so a well-executed Challenging project scores higher than a well-executed Standard one.
+
+| Idea | Hypothesis to test | Datasets | Ambition |
+| --- | --- | --- | --- |
+| Preprocessing ablation | Which of filtering, re-referencing, EOG regression and ICA actually changes decoding AUC, and by how much? | Any | Standard |
+| How few channels? | P300 or MI performance stays within 5% of the full montage with a small, physiologically chosen subset | BNCI2014-009, EEGBCI | Standard |
+| How many repetitions? | Character accuracy rises with flash repetitions; find the point where the gain stops being worth the time | BNCI2014-009, BNCI2015-003 | Standard |
+| Executed versus imagined | A decoder trained on executed movement transfers to imagined movement in the same subjects | EEGBCI | Challenging |
+| Session-to-session drift | Accuracy drops when training on day 1 and testing on day 2; band choice or normalization reduces the drop | BNCI2014-001, BNCI2014-004, Lee2019_MI | Challenging |
+| Cross-subject generalization | A leave-one-subject-out decoder reaches chance-corrected performance; per-subject baselines show who it fails | Cho2017, EEGBCI | Challenging |
+| BCI inefficiency | Resting or pre-trial alpha/mu power predicts which subjects decode well | Cho2017, Lee2019_MI | Challenging |
+| Artifacts as confounds | Some “MI decoding” comes from eye or muscle activity; removing it changes which features win | BNCI2014-001 (has EOG) | Challenging |
+| Clinical versus healthy P300 | ERP latency, amplitude and decoding differ between ALS and healthy users | BNCI2014-008 vs BNCI2014-009 | Challenging |
+
+Avoid projects that only report one accuracy number, compare classifiers without a hypothesis, or need methods outside the scope table.
+
+## Topic registration
+
+Teams choose their own topic; there is no proposal to submit. Register your topic in the shared registration spreadsheet by **day 3 of Week 1**, and check it against the other teams’ entries before you do.
+
+- No two teams may work on the same problem. Two teams may share a dataset or an idea from the table above, but not both.
+- The earlier entry keeps the topic. If two topics look too close, the teams discuss and one of them changes its question. The instructor decides only if they cannot agree.
+- After day 3 you may refine the hypothesis but not switch to another team’s topic.
+
+**Registration spreadsheet:**
+https://docs.google.com/spreadsheets/d/1k412_7HRMYv5M20mEYR3lxuYmNsHvSl1mlxU4GfMub0/edit?usp=sharing
+
+Fill one row per team. The Overlap check column flags a conflict when two teams enter the same dataset and the same project idea.
+
+## Project requirements
+
+Every project must contain the following seven stages, each with at least one figure or table as evidence.
+
+1. **Data audit.** Report subjects, sessions, runs, channels, sampling rate, units, reference, event codes and trial counts per class. Plot raw data and the sensor layout.
+2. **Signal inspection.** Show the PSD before and after filtering, and justify filter type, cut-offs and any resampling (notebook 03).
+3. **Artifact handling.** Apply at least one method from notebook 04 and show what it removed. Report how many channels, components or epochs were rejected, and why (notebook 05).
+4. **Neurophysiological check.** Before decoding, show that the expected signal exists: the P300 in target-minus-non-target ERPs, or mu/beta desynchronization in band power over C3/C4.
+5. **Features and classifier.** Build features and a classifier from the scope table inside one scikit-learn `Pipeline`, so that scaling and selection are fitted on training folds only.
+6. **Honest evaluation.**
+    - Split by run, session or subject with `GroupKFold` or leave-one-group-out, never by random epochs.
+    - Report ROC AUC or balanced accuracy as mean ± SD across folds and per subject.
+    - Estimate chance level with a permutation test or the binomial limit for your trial count.
+    - Tune hyperparameters with nested CV or a held-out validation group.
+7. **Hypothesis test.** Run your controlled comparison, changing one factor at a time, and test whether the difference exceeds fold-to-fold variability (for example, a paired Wilcoxon test across subjects).
+
+**Reproducibility.** One notebook runs top to bottom on a fresh Colab CPU runtime. Pin package versions, set random seeds, and list the subject IDs used. Put shared code in functions rather than copied cells.
+
+## Team organization
+
+Each member leads one area and reviews another, so every result is checked by someone who didn’t produce it. Everyone writes code, and everyone must be able to explain the whole pipeline at the presentation.
+
+| Role | Leads | Reviews |
+| --- | --- | --- |
+| Data and provenance lead | Loading, data audit, event coding, subject selection | Evaluation |
+| Signal processing lead | Filtering, re-referencing, artifact handling, quality control | Data and provenance |
+| Decoding lead | Feature extraction, classifier pipeline, cross-validation | Signal processing |
+| Evaluation and reporting lead | Chance levels, statistics, figures, report integration | Decoding |
+
+**Contribution log.** Keep a dated log of who did what, or use a shared Git repository whose commit history shows it. Submit it with the final report.
+
+**Individual accountability.** Each member submits a confidential peer evaluation. The instructor may adjust individual marks by up to ±20% of the team mark based on the log, peer evaluations and presentation answers.
+
+## Milestones and deliverables
+
+Three weeks, two deadlines: topic registration and final submission
+Week 1: Choose a unique problem and audit the data
+Days 1–3: pick dataset and hypothesis; check other teams' entries for overlap.
+
+Then: data audit, filtering, artifact handling, neurophysiology check.
+
+Topic registered, day 3 of Week 1 · team, dataset and hypothesis in the shared table; not reviewed
+Week 2: Decode and test the hypothesis
+Baseline decoder with grouped cross-validation and a chance level.
+
+Controlled comparison, one factor at a time, with a statistical test.
+Week 3: Write up
+Final figures, report and slides.
+
+Each member reviews another member's stage before submission.
+
+Final submission, end of Week 3 · notebook, report, slides, contribution log
+First class after submission · Present and defend
+12-minute talk and 8 minutes of Q&A per team; every member answers.
+
+Confidential peer evaluations due the same day.
+
+Weeks count from the day the project is released; notebooks 00–06 are completed individually before Week 1. The instructor sets the calendar dates; deadlines fall at the end of the named week.
+
+## Grading rubric
+
+The project is marked out of 100, plus up to 5 bonus points for the optional extension. Rigor and reasoning carry more weight than raw performance.
+
+| Criterion | Weight | Excellent (full marks) | Weak |
+| --- | --- | --- | --- |
+| Project difficulty | 10% | Challenging question (session transfer, cross-subject, executed-to-imagined transfer, confound analysis) carried through to a conclusion | Repeats a notebook exercise on the notebook’s data |
+| Problem significance | 10% | Question matters for BCI use and is well grounded in 2–3 cited papers | No link to a practical BCI question |
+| Data audit and neurophysiology | 15% | Complete provenance; expected ERP or ERD shown before decoding | Missing units or events; no signal check |
+| Preprocessing and quality control | 15% | Every choice justified with evidence; rejection counts reported | Defaults with no justification |
+| Decoding and evaluation | 20% | Leakage-free pipeline, grouped CV, chance level, per-subject results | Random epoch split, or tuning on test data |
+| Hypothesis test and interpretation | 15% | Controlled comparison with variability and a statistical test; limits stated honestly | Claims unsupported by the numbers |
+| Reproducibility and code quality | 5% | Runs top to bottom on fresh Colab; seeds and versions pinned | Fails to run |
+| Presentation and Q&A | 10% | Clear 12-minute story; every member answers questions on any stage | One member presents everything |
+| Optional extension | +5% | Out-of-scope method compared fairly against the in-scope baseline | — |
+
+## Academic integrity, AI tools and submission
+
+**Reusing course code.** You may reuse code from the course notebooks; cite the notebook in a comment. Code from other sources (papers, GitHub, forums) must be cited where it is used.
+
+**AI assistants.** You may use AI coding assistants for debugging, API lookup and plotting. You must:
+
+- Disclose the tools used and what for, in a short appendix.
+- Understand and be able to explain every line you submit; Q&A will test this.
+- Never use AI to invent results, citations or dataset facts. Every number in the report must come from your notebook.
+
+**What to submit (one upload per team):**
+
+- The notebook (`.ipynb`) with all outputs saved, plus a Colab link.
+- The report as a PDF (6–8 pages, IEEE two-column template, references not counted).
+- Presentation slides as a PDF.
+- The contribution log or Git repository link.
+- Peer evaluations: submitted individually and confidentially.
+
+**Late policy.** 10% per day, up to 3 days, unless an extension is agreed in advance.

@@ -13,7 +13,7 @@ ERD/ERS topomaps
 
 ![ERD/ERS topomaps](https://github.com/alarxx/BCI_Midterm_Project/blob/main/assets/erd_topomap.png)
 
-Correlation between
+Correlation between pre-trial mu power and ROC AUC
 
 ![Correlation between pre-trial mu power and ROC AUC](https://github.com/alarxx/BCI_Midterm_Project/blob/main/assets/mu_vs_auc.png)
 
